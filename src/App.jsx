@@ -20,9 +20,7 @@ function App() {
   const [results, setResults] = useState(null);
 
   const handleFileSelection = (selectedFiles) => {
-    // find the first file ending with .csv in the selection
     const csv = selectedFiles.find(file => file.name.toLowerCase().endsWith('.csv'));
-    // filter for all files ending with .jpg or .jpeg
     const images = selectedFiles.filter(file => 
       file.name.toLowerCase().endsWith('.jpg') || file.name.toLowerCase().endsWith('.jpeg')
     );
@@ -46,18 +44,24 @@ function App() {
     setResults(null);
 
     try {
+      // ensure the prefix always ends with an underscore for processing.
+      const processingPrefix = prefix.endsWith('_') ? prefix : `${prefix}_`;
+      // create a clean name for the zip file without the underscore.
+      const zipName = `${prefix.replace(/_$/, '')}.zip`;
+
       const existingJsonText = await jsonFile.text();
       const existingJson = JSON.parse(existingJsonText);
 
-      const renamedImages = await renameImageFiles(imageFiles, prefix);
+      // use the formatted prefix for renaming and conversion.
+      const renamedImages = await renameImageFiles(imageFiles, processingPrefix);
       if (renamedImages.length === 0) {
-        throw new Error("no images matched the expected naming format '###-pano.jpg'.");
+        throw new Error("no images matched the expected naming format '####-pano.jpg'.");
       }
 
-      const newJsonData = await convertCsvToJson(csvFile, prefix);
+      const newJsonData = await convertCsvToJson(csvFile, processingPrefix);
       const finalJson = mergeJsonData(existingJson, newJsonData);
 
-      const zipBlob = await createZip(renamedImages, `${prefix.replace(/_$/, '')}.zip`);
+      const zipBlob = await createZip(renamedImages, zipName);
       
       const zipUrl = URL.createObjectURL(zipBlob);
       const jsonBlob = new Blob([JSON.stringify(finalJson, null, 2)], { type: 'application/json' });
@@ -65,7 +69,7 @@ function App() {
       
       setResults({
         zipUrl,
-        zipName: `${prefix.replace(/_$/, '')}.zip`,
+        zipName, // use the clean zip name here
         jsonUrl,
       });
 
@@ -90,7 +94,6 @@ function App() {
             accept=".jpg,.jpeg,.csv"
             multiple
           />
-          {/* add confirmation text for the user */}
           {csvFile && <p className="text-sm text-green-600 mt-2">✔️ CSV file loaded: {csvFile.name}</p>}
           {imageFiles.length > 0 && <p className="text-sm text-green-600 mt-2">✔️ {imageFiles.length} image(s) loaded.</p>}
 
