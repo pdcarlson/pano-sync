@@ -1,9 +1,9 @@
 // src/components/ActionPanel.jsx
 
-function ActionPanel({ onProcess, results, isLoading }) {
+function ActionPanel({ onProcess, isLoading }) {
   return (
     <div className="flex w-full flex-col gap-4 rounded-md border border-[#EDEDF0] bg-white p-4">
-      <h2 className="text-xl font-light text-[#2D2D31]">3. Process & Download</h2>
+      <h2 className="text-xl font-light text-[#2D2D31]">3. Process Files</h2>
       <button
         onClick={onProcess}
         disabled={isLoading}
@@ -11,18 +11,6 @@ function ActionPanel({ onProcess, results, isLoading }) {
       >
         {isLoading ? 'Processing...' : 'Process Files'}
       </button>
-
-      {results && (
-        <div className="mt-4 flex flex-col gap-2">
-          <h3 className="font-semibold">Results:</h3>
-          <a href={results.zipUrl} download={results.zipName} className="text-pink-600 hover:underline">
-            Download Renamed Images (.zip)
-          </a>
-          <a href={results.jsonUrl} download="pano_correction_data.json" className="text-pink-600 hover:underline">
-            Download Updated JSON
-          </a>
-        </div>
-      )}
     </div>
   );
 }
