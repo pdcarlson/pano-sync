@@ -13,6 +13,8 @@
     "@appwrite.io/pink-icons": "^1.0.0",
     "@tailwindcss/vite": "^4.0.14",
     "appwrite": "^17.0.0",
+    "jszip": "^3.10.1",
+    "papaparse": "^5.5.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
     "tailwindcss": "^4.0.14"
