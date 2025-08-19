@@ -1,7 +1,7 @@
 // src/components/ActionPanel.jsx
 
-// this component holds the main action button and download links
-function ActionPanel({ onProcess, results, isLoading }) {
+// the onDownloadJson prop is new, it will trigger the modal
+function ActionPanel({ onProcess, onDownloadJson, results, isLoading }) {
   return (
     <div className="flex w-full flex-col gap-4 rounded-md border border-[#EDEDF0] bg-white p-4">
       <h2 className="text-xl font-light text-[#2D2D31]">3. Process & Download</h2>
@@ -19,8 +19,16 @@ function ActionPanel({ onProcess, results, isLoading }) {
           <a href={results.zipUrl} download={results.zipName} className="text-pink-600 hover:underline">
             Download Renamed Images (.zip)
           </a>
-          <a href={results.jsonUrl} download="pano_correction_data.json" className="text-pink-600 hover:underline">
-            Download Updated JSON
+          {/* this is now a button-like link to trigger the modal */}
+          <a
+            href="#"
+            onClick={(e) => {
+              e.preventDefault();
+              onDownloadJson();
+            }}
+            className="text-pink-600 hover:underline"
+          >
+            Download & Update Cloud JSON
           </a>
         </div>
       )}
