@@ -12,7 +12,7 @@ function PrefixInput({ value, onChange }) {
         type="text"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder="e.g., GOHEEN_20250601_"
+        placeholder="e.g., PROJECT_YYYYMMDD"
         className="w-full rounded-md border border-gray-300 p-2"
       />
     </div>

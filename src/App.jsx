@@ -44,18 +44,15 @@ function App() {
     setResults(null);
 
     try {
-      // ensure the prefix always ends with an underscore for processing.
       const processingPrefix = prefix.endsWith('_') ? prefix : `${prefix}_`;
-      // create a clean name for the zip file without the underscore.
       const zipName = `${prefix.replace(/_$/, '')}.zip`;
 
       const existingJsonText = await jsonFile.text();
       const existingJson = JSON.parse(existingJsonText);
 
-      // use the formatted prefix for renaming and conversion.
       const renamedImages = await renameImageFiles(imageFiles, processingPrefix);
       if (renamedImages.length === 0) {
-        throw new Error("no images matched the expected naming format '####-pano.jpg'.");
+        throw new Error("no images matched the expected naming format '###-pano.jpg'.");
       }
 
       const newJsonData = await convertCsvToJson(csvFile, processingPrefix);
@@ -69,7 +66,7 @@ function App() {
       
       setResults({
         zipUrl,
-        zipName, // use the clean zip name here
+        zipName,
         jsonUrl,
       });
 
@@ -88,20 +85,31 @@ function App() {
       <div className="w-full p-4 border rounded-lg bg-gray-50">
         <h2 className="text-xl font-light text-[#2D2D31] mb-2">1. Upload Files</h2>
         <div className="space-y-4">
-          <FileUploader
-            title="JPG Images & CSV File"
-            onFilesSelected={handleFileSelection}
-            accept=".jpg,.jpeg,.csv"
-            multiple
-          />
-          {csvFile && <p className="text-sm text-green-600 mt-2">✔️ CSV file loaded: {csvFile.name}</p>}
-          {imageFiles.length > 0 && <p className="text-sm text-green-600 mt-2">✔️ {imageFiles.length} image(s) loaded.</p>}
+          <div>
+            <FileUploader
+              title="JPG Images & CSV File"
+              onFilesSelected={handleFileSelection}
+              accept=".jpg,.jpeg,.csv"
+              multiple
+            />
+            <div className="mt-2 space-y-1">
+              {/* updated this section */}
+              {csvFile && <p className="text-sm text-pink-600">CSV file loaded: {csvFile.name}</p>}
+              {imageFiles.length > 0 && <p className="text-sm text-pink-600">{imageFiles.length} image(s) loaded.</p>}
+            </div>
+          </div>
 
-          <FileUploader
-            title="Existing JSON Data"
-            onFilesSelected={(files) => setJsonFile(files[0])}
-            accept=".json"
-          />
+          <div>
+            <FileUploader
+              title="Existing JSON Data"
+              onFilesSelected={(files) => setJsonFile(files[0])}
+              accept=".json"
+            />
+            <div className="mt-2 space-y-1">
+              {/* updated this line */}
+              {jsonFile && <p className="text-sm text-pink-600">JSON file loaded: {jsonFile.name}</p>}
+            </div>
+          </div>
         </div>
       </div>
       
