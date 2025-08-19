@@ -1,69 +1,14 @@
 // src/lib/fileUtils.js
-
-// ... (keep imports and constants the same) ...
 import Papa from 'papaparse';
 import JSZip from 'jszip';
-import { storage as appwriteStorage, ID } from './appwrite';
-
-const BUCKET_ID = import.meta.env.VITE_APPWRITE_BUCKET_ID;
-const JSON_FILE_ID = import.meta.env.VITE_JSON_FILE_ID;
 
 /**
- * fetches and parses the main json file from appwrite storage.
- * @returns {Promise<object>} - a promise that resolves to the parsed json data.
+ * renames uploaded image files based on a prefix.
+ * example: 001-pano.jpg -> MYPREFIX_001.jpg
+ * @param {File[]} imageFiles - the array of original image files.
+ * @param {string} prefix - the user-provided prefix.
+ * @returns {Promise<File[]>} - a promise that resolves to an array of new file objects.
  */
-export const getCloudJson = async () => {
-  try {
-    // correct: use the getfiledownload method which returns a promise resolving to a url.
-    const url = appwriteStorage.getFileDownload(BUCKET_ID, JSON_FILE_ID);
-    
-    // fetch the content from that url.
-    const response = await fetch(url.href);
-
-    if (!response.ok) {
-      // make the error more specific if possible.
-      throw new Error(`network response was not ok: ${response.status} ${response.statusText}`);
-    }
-    
-    // now we can parse the response body directly as json.
-    return await response.json();
-  } catch (error) {
-    console.error("failed to fetch cloud json:", error);
-    // if the file isn't found (a 404 error), we can return an empty object to start fresh.
-    if (error.message.includes('404')) {
-      console.log("json file not found in cloud, starting with an empty object.");
-      return {};
-    }
-    throw new Error("could not retrieve the json data file from the cloud.");
-  }
-};
-
-
-// ... (The rest of the file: updateCloudJson, renameImageFiles, etc., remains exactly the same as before) ...
-export const updateCloudJson = async (jsonData) => {
-  try {
-    const jsonString = JSON.stringify(jsonData, null, 2);
-    const file = new File([jsonString], "pano_correction_data.json", { type: "application/json" });
-    
-    // appwrite doesn't have a direct 'update' via file, so we delete and re-create.
-    // this ensures we always have the latest version under the same id.
-    await appwriteStorage.deleteFile(BUCKET_ID, JSON_FILE_ID);
-    await appwriteStorage.createFile(BUCKET_ID, JSON_FILE_ID, file);
-    console.log("successfully updated cloud json.");
-  } catch (error) {
-    // if the delete failed (e.g., file didn't exist), try creating it anyway.
-    if (error.code === 404) {
-         const jsonString = JSON.stringify(jsonData, null, 2);
-         const file = new File([jsonString], "pano_correction_data.json", { type: "application/json" });
-         await appwriteStorage.createFile(BUCKET_ID, JSON_FILE_ID, file);
-         console.log("successfully created cloud json.");
-         return;
-    }
-    console.error("failed to update cloud json:", error);
-    throw new Error("could not save the updated json data to the cloud.");
-  }
-};
-
 export const renameImageFiles = async (imageFiles, prefix) => {
   const renamedFiles = imageFiles.map((file) => {
     const match = file.name.match(/^(\d+)-pano\.jpg$/);
@@ -72,36 +17,51 @@ export const renameImageFiles = async (imageFiles, prefix) => {
       const newName = `${prefix}${originalNumber}.jpg`;
       return new File([file], newName, { type: file.type });
     }
-    return null; 
+    return null;
   });
+  // filter out any files that didn't match the naming convention
   return renamedFiles.filter(file => file !== null);
 };
 
+/**
+ * parses a csv file and converts it to a json object, mirroring the python script.
+ * @param {File} csvFile - the uploaded csv file.
+ * @param {string} prefix - the user-provided prefix to build the new keys.
+ * @returns {Promise<object>} - a promise that resolves to the converted json object.
+ */
 export const convertCsvToJson = (csvFile, prefix) => {
   return new Promise((resolve, reject) => {
     Papa.parse(csvFile, {
       delimiter: ';',
-      header: false,
+      header: false, // the file has no true header row
       skipEmptyLines: true,
-      comments: '#',
+      comments: '#', // treat lines starting with # as comments
       complete: (results) => {
         try {
           const convertedData = {};
+          // define column names as per the python script logic
           const col_names = [
               'ID', 'filename', 'timestamp', 'pano_pos_x', 'pano_pos_y', 'pano_pos_z',
               'pano_ori_w', 'pano_ori_x', 'pano_ori_y', 'pano_ori_z'
           ];
+
           results.data.forEach((rowArray, rowIndex) => {
+            // convert array to an object with keys
             const row = col_names.reduce((obj, key, index) => {
                 obj[key] = rowArray[index] ? rowArray[index].trim() : undefined;
                 return obj;
             }, {});
+
             if (!row.filename) {
                 console.warn(`skipping row ${rowIndex + 2} due to missing filename.`);
                 return;
             }
+
+            // extract the shot number (e.g., '00000-pano.jpg' -> '00000')
             const shot_number = String(row.filename).split('-')[0];
             const key = `${prefix}${shot_number}.jpg`;
+
+            // build the nested json structure
             convertedData[key] = {
               id: parseInt(row.ID, 10),
               timestamp: parseFloat(row.timestamp),
@@ -130,10 +90,23 @@ export const convertCsvToJson = (csvFile, prefix) => {
   });
 };
 
+/**
+ * merges the newly converted json data into the existing json data.
+ * the new data takes precedence.
+ * @param {object} existingJson - the parsed json from the uploaded file.
+ * @param {object} newJson - the json object converted from the csv.
+ * @returns {object} - the final merged json object.
+ */
 export const mergeJsonData = (existingJson, newJson) => {
   return { ...existingJson, ...newJson };
 };
 
+/**
+ * creates a zip archive from an array of files.
+ * @param {File[]} files - the files to add to the zip.
+ * @param {string} zipName - the name of the zip file.
+ * @returns {Promise<Blob>} - a promise that resolves to the zip file blob.
+ */
 export const createZip = async (files, zipName) => {
   const zip = new JSZip();
   files.forEach((file) => {
