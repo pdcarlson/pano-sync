@@ -1,6 +1,6 @@
 // src/components/PrefixInput.jsx
 
-// a component for the user to input the file prefix
+// a simple controlled input component for the file prefix.
 function PrefixInput({ value, onChange }) {
   return (
     <div className="flex w-full flex-col gap-2 rounded-md border border-[#EDEDF0] bg-white p-4">

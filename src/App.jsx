@@ -13,16 +13,22 @@ import {
 } from './lib/fileUtils';
 
 function App() {
+  // state for user-uploaded files
   const [imageFiles, setImageFiles] = useState([]);
   const [csvFile, setCsvFile] = useState(null);
   const [jsonFile, setJsonFile] = useState(null);
+
+  // state for user input and ui control
   const [prefix, setPrefix] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [results, setResults] = useState(null);
   const [isResultsModalOpen, setIsResultsModalOpen] = useState(false);
 
+  // handler to sort files from the consolidated uploader
   const handleFileSelection = (selectedFiles) => {
+    // find the first file ending with .csv in the selection
     const csv = selectedFiles.find(file => file.name.toLowerCase().endsWith('.csv'));
+    // filter for all files ending with .jpg or .jpeg
     const images = selectedFiles.filter(file => 
       file.name.toLowerCase().endsWith('.jpg') || file.name.toLowerCase().endsWith('.jpeg')
     );
@@ -36,7 +42,9 @@ function App() {
     }
   };
 
+  // main handler for processing all the files
   const handleProcessFiles = async () => {
+    // validate that all required files and inputs are present
     if (!imageFiles.length || !csvFile || !jsonFile || !prefix) {
       alert('please upload all files and provide a prefix.');
       return;
@@ -46,32 +54,42 @@ function App() {
     setResults(null);
 
     try {
+      // ensure the prefix always ends with an underscore for processing
       const processingPrefix = prefix.endsWith('_') ? prefix : `${prefix}_`;
+      // create a clean name for the zip file without the trailing underscore
       const zipName = `${prefix.replace(/_$/, '')}.zip`;
 
+      // read the user-uploaded json file as text
       const existingJsonText = await jsonFile.text();
       const existingJson = JSON.parse(existingJsonText);
 
+      // rename image files based on the prefix
       const renamedImages = await renameImageFiles(imageFiles, processingPrefix);
       if (renamedImages.length === 0) {
         throw new Error("no images matched the expected naming format '###-pano.jpg'.");
       }
 
+      // convert the csv data to a json object
       const newJsonData = await convertCsvToJson(csvFile, processingPrefix);
+      // merge the new data into the existing json data
       const finalJson = mergeJsonData(existingJson, newJsonData);
 
+      // create a zip archive of the renamed images
       const zipBlob = await createZip(renamedImages, zipName);
       
+      // create downloadable blob urls for the results
       const zipUrl = URL.createObjectURL(zipBlob);
       const jsonBlob = new Blob([JSON.stringify(finalJson, null, 2)], { type: 'application/json' });
       const jsonUrl = URL.createObjectURL(jsonBlob);
       
+      // set the results to be displayed in the modal
       setResults({
         zipUrl,
         zipName,
         jsonUrl,
       });
 
+      // open the results modal
       setIsResultsModalOpen(true);
 
     } catch (error) {

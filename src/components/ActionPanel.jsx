@@ -1,5 +1,6 @@
 // src/components/ActionPanel.jsx
 
+// this component contains the main "process" button.
 function ActionPanel({ onProcess, isLoading }) {
   return (
     <div className="flex w-full flex-col gap-4 rounded-md border border-[#EDEDF0] bg-white p-4">
